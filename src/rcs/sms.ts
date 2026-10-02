@@ -12,7 +12,12 @@ export async function sendSMS(to: string, text: string, apiKey: string) {
     })
   });
 
-  const data = await response.json();
-  console.log('SMS envoyé ✅', data);
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const errorCode = data?.errorCode ?? data?.details?.errorCode;
+    const detail = data?.detail ?? data?.details?.detail;
+    throw new Error(`Échec de l’envoi SMS (HTTP ${response.status}${errorCode ? `, ${errorCode}` : ''})${detail ? `: ${detail}` : ''}`);
+  }
+  console.log('SMS de repli accepté');
   return data;
 }

@@ -1,37 +1,59 @@
 import express from 'express';
-import dotenv from 'dotenv';
 import { SmsmodeRcsClient, parseWebhookPayload, isIncomingMessage } from '@smsmode/rcs';
+import { config, isValidRcsWebhookSecret, requireRcsConfig } from './config.js';
 import { DoctorAppointement } from './rcs/DoctorAppointement.js';
 import { MapAssistant } from './rcs/map.js';
 import { getAllSlots, getAvailableSlots, bookSlot, getSlotById } from './slots.js';
 import { generateCalendarFile } from './calendar.js';
-dotenv.config();
-dotenv.config({ path: './env/.env.keys' });
+import { createNotificationManager } from './notifications.js';
+import { addGlobalReply, removeGlobalReply, addPhoneReply, removePhoneReply, getAllReplies, getHistory } from './rcs/sessions.js';
+import { extractPostbackData } from './rcs/payload.js';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '32kb' }));
 
+// Parse CLI args: --<phone_number> and --<appointment_type>
+const cliArgs = process.argv.slice(2);
+const phoneArg = cliArgs.find(a => /^--\d+$/.test(a))?.replace('--', '');
+const typeArg = cliArgs.find(a => /^--(doctor)$/.test(a))?.replace('--', '');
 
-const apiKey = process.env.API_KEY || process.env.SMSMODE_API_KEY;
+if (cliArgs.length > 0 && (!phoneArg || !typeArg)) {
+  console.error('Usage: ts-node server.ts --<phone_number> --<appointment_type>');
+  console.error('Example: ts-node server.ts --33600000000 --doctor');
+  console.error('Supported appointment types: doctor');
+  process.exit(1);
+}
+
+const apiKey = config.rcsApiKey;
 const client = apiKey ? new SmsmodeRcsClient({ apiKey }) : null;
-const andre_phone = process.env.ANDRE_PHONE!;
-const companyName = process.env.COMPANY_NAME || 'notre entreprise';
-const companyDestination = process.env.COMPANY_ADDRESS || companyName;
+const phoneNumber = phoneArg ?? config.phoneNumber;
+const companyName = config.companyName || 'Cabinet Médical';
+const companyDestination = config.companyAddress || companyName;
 
 let rdv1: DoctorAppointement | undefined;
 let mapAssistant: MapAssistant | undefined;
 
-function ensureConversationHandlers() {
+function ensureConversationHandlers(appointmentType?: string) {
   if (!client) {
-    throw new Error('API_KEY manquante: impossible d\'envoyer des messages RCS');
+    throw new Error('RCS_API_KEY manquante: configurez la clé RCS SMSMode dans env/.env.keys ou .env');
+  }
+
+  requireRcsConfig();
+  if (!/^\d{8,15}$/.test(phoneNumber)) {
+    throw new Error('PHONE_NUMBER doit contenir un numéro international de 8 à 15 chiffres, sans +');
   }
 
   if (!mapAssistant) {
-    mapAssistant = new MapAssistant(true, andre_phone, client, companyName, companyDestination);
+    mapAssistant = new MapAssistant(true, phoneNumber, client, companyName, companyDestination);
   }
 
+  const type = appointmentType ?? typeArg ?? 'doctor';
   if (!rdv1) {
-    rdv1 = new DoctorAppointement(true, andre_phone, client, mapAssistant);
+    if (type === 'doctor') {
+      rdv1 = new DoctorAppointement(true, phoneNumber, client, mapAssistant);
+    } else {
+      throw new Error(`Type de rendez-vous inconnu: "${type}". Types supportés: doctor`);
+    }
   }
 }
 
@@ -81,7 +103,7 @@ app.post('/api/slots/:slotId/book', async (req, res) => {
       const slot = await getSlotById(req.params.slotId);
       res.json({ message: 'Créneau réservé avec succès', slot });
     } else {
-      res.status(409).json({ error: 'Créneau déjà réservé' });
+      res.status(409).json({ error: 'Créneau indisponible ou déjà passé' });
     }
   } catch (error) {
     console.error('Erreur lors de la réservation:', error);
@@ -106,12 +128,65 @@ app.get('/api/slots/:slotId/calendar', async (req, res) => {
   }
 });
 
-app.post('/webhook/rcs', async (req, res) => {
-  console.log('Webhook reçu :', JSON.stringify(req.body, null, 2));
+app.get('/api/replies', async (_req, res) => {
   try {
-    const payload = parseWebhookPayload(req.body);
+    const data = await getAllReplies();
+    res.json({ global: data.global, sessions: Object.fromEntries(
+      Object.entries(data.sessions).map(([phone, s]) => [phone, s.customReplies])
+    )});
+  } catch {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+app.post('/api/replies/global', async (req, res) => {
+  const { command, reply } = req.body;
+  if (!command || !reply) { res.status(400).json({ error: 'command et reply requis' }); return; }
+  await addGlobalReply(command, reply);
+  res.json({ message: 'Réponse globale ajoutée' });
+});
+
+app.delete('/api/replies/global/:command', async (req, res) => {
+  await removeGlobalReply(req.params.command);
+  res.json({ message: 'Réponse globale supprimée' });
+});
+
+app.post('/api/replies/:phone', async (req, res) => {
+  const { command, reply } = req.body;
+  if (!command || !reply) { res.status(400).json({ error: 'command et reply requis' }); return; }
+  await addPhoneReply(req.params.phone, command, reply);
+  res.json({ message: 'Réponse ajoutée' });
+});
+
+app.delete('/api/replies/:phone/:command', async (req, res) => {
+  await removePhoneReply(req.params.phone, req.params.command);
+  res.json({ message: 'Réponse supprimée' });
+});
+
+app.get('/api/sessions/:phone/history', async (req, res) => {
+  const history = await getHistory(req.params.phone);
+  res.json(history);
+});
+
+app.post(config.rcsWebhookRoute, async (req, res) => {
+  const token = req.params.token;
+  if (!isValidRcsWebhookSecret(typeof token === 'string' ? token : undefined)) {
+    res.sendStatus(401);
+    return;
+  }
+  console.log('Webhook RCS reçu');
+  let payload: ReturnType<typeof parseWebhookPayload>;
+  try {
+    payload = parseWebhookPayload(req.body);
+  } catch (error) {
+    console.error('Webhook RCS invalide:', error);
+    res.sendStatus(400);
+    return;
+  }
+
+  try {
     if (isIncomingMessage(payload)) {
-      const postbackData = (payload.body as any).postbackData ?? payload.body.text;
+      const postbackData = extractPostbackData(payload.body);
       if (rdv1 && await rdv1.waitForScheduleResponse(postbackData)) {
         res.sendStatus(200);
         return;
@@ -121,8 +196,10 @@ app.post('/webhook/rcs', async (req, res) => {
         await mapAssistant.waitForLocationResponse(payload);
       }
     }
-  } catch (e) {
-    console.error('Webhook invalide :', e);
+  } catch (error) {
+    console.error('Échec du traitement du webhook RCS:', error);
+    res.sendStatus(500);
+    return;
   }
 
   res.sendStatus(200);
@@ -160,7 +237,7 @@ async function main() {
     console.error("Erreur lors de l'envoi du message initial:", error);
   }
 
-  app.listen(3000, '0.0.0.0', () => {
+  app.listen(3000, '127.0.0.1', () => {
     console.log('Serveur lancé sur http://localhost:3000');
     console.log('API disponible sur http://localhost:3000/api');
     console.log('');
@@ -173,6 +250,10 @@ async function main() {
     console.log('  POST /api/ask-appointment         - Envoyer le message RCS initial');
     console.log('  POST /webhook/rcs                 - Webhook RCS');
   });
+  if (client) {
+    const notificationManager = createNotificationManager(client, 'Docteur Dupond');
+    notificationManager.startScheduler();
+  }
   console.log('Serveur prêt ✅');
 }
 

@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "tsx src/server.ts",
+    "trigger": "tsx src/trigger-server.ts",
     "dashboard": "vite dashboard",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build dashboard",
     "lint": "eslint .",
+    "test": "tsx --test src/*.test.ts src/rcs/*.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -33,6 +35,6 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.16"
   }
 }

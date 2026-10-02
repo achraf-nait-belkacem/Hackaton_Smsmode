@@ -1,0 +1,22 @@
+[
+  { "id": "slot-1", "label": "Lundi 5 oct. — 10h00", "isoStart": "2026-10-05T10:00:00+02:00", "isoEnd": "2026-10-05T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-2", "label": "Lundi 5 oct. — 14h00", "isoStart": "2026-10-05T14:00:00+02:00", "isoEnd": "2026-10-05T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-3", "label": "Mardi 6 oct. — 10h00", "isoStart": "2026-10-06T10:00:00+02:00", "isoEnd": "2026-10-06T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-4", "label": "Mardi 6 oct. — 14h00", "isoStart": "2026-10-06T14:00:00+02:00", "isoEnd": "2026-10-06T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-5", "label": "Mercredi 7 oct. — 10h00", "isoStart": "2026-10-07T10:00:00+02:00", "isoEnd": "2026-10-07T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-6", "label": "Mercredi 7 oct. — 14h00", "isoStart": "2026-10-07T14:00:00+02:00", "isoEnd": "2026-10-07T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-7", "label": "Jeudi 8 oct. — 10h00", "isoStart": "2026-10-08T10:00:00+02:00", "isoEnd": "2026-10-08T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-8", "label": "Jeudi 8 oct. — 14h00", "isoStart": "2026-10-08T14:00:00+02:00", "isoEnd": "2026-10-08T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-9", "label": "Vendredi 9 oct. — 10h00", "isoStart": "2026-10-09T10:00:00+02:00", "isoEnd": "2026-10-09T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-10", "label": "Vendredi 9 oct. — 14h00", "isoStart": "2026-10-09T14:00:00+02:00", "isoEnd": "2026-10-09T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-11", "label": "Lundi 12 oct. — 10h00", "isoStart": "2026-10-12T10:00:00+02:00", "isoEnd": "2026-10-12T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-12", "label": "Lundi 12 oct. — 14h00", "isoStart": "2026-10-12T14:00:00+02:00", "isoEnd": "2026-10-12T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-13", "label": "Mardi 13 oct. — 10h00", "isoStart": "2026-10-13T10:00:00+02:00", "isoEnd": "2026-10-13T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-14", "label": "Mardi 13 oct. — 14h00", "isoStart": "2026-10-13T14:00:00+02:00", "isoEnd": "2026-10-13T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-15", "label": "Mercredi 14 oct. — 10h00", "isoStart": "2026-10-14T10:00:00+02:00", "isoEnd": "2026-10-14T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-16", "label": "Mercredi 14 oct. — 14h00", "isoStart": "2026-10-14T14:00:00+02:00", "isoEnd": "2026-10-14T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-17", "label": "Jeudi 15 oct. — 10h00", "isoStart": "2026-10-15T10:00:00+02:00", "isoEnd": "2026-10-15T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-18", "label": "Jeudi 15 oct. — 14h00", "isoStart": "2026-10-15T14:00:00+02:00", "isoEnd": "2026-10-15T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-19", "label": "Vendredi 16 oct. — 10h00", "isoStart": "2026-10-16T10:00:00+02:00", "isoEnd": "2026-10-16T11:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false },
+  { "id": "slot-20", "label": "Vendredi 16 oct. — 14h00", "isoStart": "2026-10-16T14:00:00+02:00", "isoEnd": "2026-10-16T15:00:00+02:00", "booked": false, "bookedBy": null, "bookingTime": null, "notificationSent": false }
+]

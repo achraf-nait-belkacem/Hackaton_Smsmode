@@ -1,69 +1,68 @@
+import { SmsmodeRcsClient } from '@smsmode/rcs';
+import { requireRcsCallbackUrl } from '../config.js';
+import { setLocationPending } from './sessions.js';
+import { ClientLocation, extractClientLocation } from './payload.js';
+
+type LocationState = 'idle' | 'awaiting_location' | 'route_sent';
+
 export class MapAssistant {
-    constructor(isA2P, phoneNb, client, companyName, companyDestination) {
-        this.state = 'idle';
+    isA2P: boolean;
+    phoneNb: string;
+    client: SmsmodeRcsClient;
+    private companyName: string;
+    private companyDestination: string;
+    private state: LocationState = 'idle';
+
+    constructor(isA2P: boolean, phoneNb: string, client: SmsmodeRcsClient, companyName?: string, companyDestination?: string, awaitingLocation = false) {
         this.isA2P = isA2P;
         this.phoneNb = phoneNb;
         this.client = client;
         this.companyName = companyName || 'notre entreprise';
         this.companyDestination = companyDestination || this.companyName;
+        this.state = awaitingLocation ? 'awaiting_location' : 'idle';
     }
+
     async askForLocation() {
+        const callbackUrlMo = requireRcsCallbackUrl();
         await this.client.send({
             recipient: { to: this.phoneNb },
-            callbackUrlMo: 'https://smsmode-hack-team-1.ngrok.dev/webhook/rcs',
+            callbackUrlMo,
             body: {
-                type: 'TEXT',
+                type: 'TEXT' as const,
                 text: 'Pour vous envoyer le trajet, partagez votre position actuelle.',
                 suggestions: [
                     {
-                        type: 'REQUEST_LOCATION',
+                        type: 'REQUEST_LOCATION' as const,
                         text: 'Partager ma position',
                         postbackData: 'request_location'
                     }
                 ]
             }
         });
+
         this.state = 'awaiting_location';
+        await setLocationPending(this.phoneNb, true);
         console.log('Demande de position envoyee ✅');
     }
-    async waitForLocationResponse(payload) {
+
+    async waitForLocationResponse(payload: unknown) {
         if (this.state !== 'awaiting_location') {
             return false;
         }
-        const clientLocation = this.extractClientLocation(payload);
+
+        const clientLocation = extractClientLocation(payload);
+
         if (!clientLocation) {
             await this.sendLocationReminder();
             return true;
         }
+
         await this.sendRouteToCompany(clientLocation);
         this.state = 'route_sent';
         return true;
     }
-    extractClientLocation(payload) {
-        const body = payload?.body ?? {};
-        if (typeof body.latitude === 'number' && typeof body.longitude === 'number') {
-            return { latitude: body.latitude, longitude: body.longitude };
-        }
-        if (typeof body.location?.latitude === 'number' && typeof body.location?.longitude === 'number') {
-            return {
-                latitude: body.location.latitude,
-                longitude: body.location.longitude
-            };
-        }
-        if (typeof body.text === 'string') {
-            const match = body.text
-                .trim()
-                .match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
-            if (match) {
-                return {
-                    latitude: Number.parseFloat(match[1].replace(',', '.')),
-                    longitude: Number.parseFloat(match[2].replace(',', '.'))
-                };
-            }
-        }
-        return null;
-    }
-    buildRouteUrl(clientLocation) {
+
+    private buildRouteUrl(clientLocation: ClientLocation) {
         const url = new URL('https://www.google.com/maps/dir/');
         url.searchParams.set('api', '1');
         url.searchParams.set('origin', `${clientLocation.latitude},${clientLocation.longitude}`);
@@ -71,17 +70,20 @@ export class MapAssistant {
         url.searchParams.set('travelmode', 'driving');
         return url.toString();
     }
-    async sendRouteToCompany(clientLocation) {
+
+    private async sendRouteToCompany(clientLocation: ClientLocation) {
         const routeUrl = this.buildRouteUrl(clientLocation);
+        const callbackUrlMo = requireRcsCallbackUrl();
+
         await this.client.send({
             recipient: { to: this.phoneNb },
-            callbackUrlMo: 'https://smsmode-hack-team-1.ngrok.dev/webhook/rcs',
+            callbackUrlMo,
             body: {
-                type: 'TEXT',
+                type: 'TEXT' as const,
                 text: `Votre trajet vers ${this.companyName} est pret. Ouvrez la carte pour demarrer l'itineraire.`,
                 suggestions: [
                     {
-                        type: 'OPEN_URL',
+                        type: 'OPEN_URL' as const,
                         text: 'Ouvrir la carte',
                         postbackData: 'open_route_map',
                         url: routeUrl,
@@ -90,24 +92,29 @@ export class MapAssistant {
                 ]
             }
         });
+
+        await setLocationPending(this.phoneNb, false);
         console.log('Itineraire envoye ✅');
     }
-    async sendLocationReminder() {
+
+    private async sendLocationReminder() {
+        const callbackUrlMo = requireRcsCallbackUrl();
         await this.client.send({
             recipient: { to: this.phoneNb },
-            callbackUrlMo: 'https://smsmode-hack-team-1.ngrok.dev/webhook/rcs',
+            callbackUrlMo,
             body: {
-                type: 'TEXT',
+                type: 'TEXT' as const,
                 text: 'Je n\'ai pas encore recu votre position. Pouvez-vous la partager pour generer le trajet ?',
                 suggestions: [
                     {
-                        type: 'REQUEST_LOCATION',
+                        type: 'REQUEST_LOCATION' as const,
                         text: 'Partager ma position',
                         postbackData: 'request_location'
                     }
                 ]
             }
         });
+
         console.log('Rappel de position envoye ✅');
     }
 }

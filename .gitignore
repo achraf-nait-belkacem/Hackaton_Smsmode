@@ -1,3 +1,11 @@
+# Secrets / environment
+.env
+.env.*
+*.env
+.env.keys
+env/
+!.env.example
+
 # Logs
 logs
 *.log
@@ -7,19 +15,35 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies & build output
 node_modules
 dist
 dist-ssr
+build
+*.tsbuildinfo
+coverage
 *.local
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+env/
+/data/sessions.json
+/data/slots.json
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-rcs/*.js
+
+# Compiled backend output — we run the .ts sources directly via tsx
+src/**/*.js
+/slots.json
